@@ -11,6 +11,12 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/Profile";
+import OrganizationManagement from "./pages/OrganizationManagement";
+import MarketManagement from "./pages/MarketManagement";
+import ChannelManagement from "./pages/ChannelManagement";
+import SegmentManagement from "./pages/SegmentManagement";
+import OutletManagement from "./pages/OutletManagement";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +50,68 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Profile />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Management routes with role-based access */}
+            <Route
+              path="/organizations"
+              element={
+                <ProtectedRoute requiredRole="super_user">
+                  <AppLayout>
+                    <OrganizationManagement />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/markets"
+              element={
+                <ProtectedRoute requiredRole="power_user">
+                  <AppLayout>
+                    <MarketManagement />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/channels"
+              element={
+                <ProtectedRoute requiredRole="market_admin">
+                  <AppLayout>
+                    <ChannelManagement />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/segments"
+              element={
+                <ProtectedRoute requiredRole="market_admin">
+                  <AppLayout>
+                    <SegmentManagement />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/outlets"
+              element={
+                <ProtectedRoute requiredRole="market_admin">
+                  <AppLayout>
+                    <OutletManagement />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute requiredRole="market_admin">
+                  <AppLayout>
+                    <UserManagement />
                   </AppLayout>
                 </ProtectedRoute>
               }
