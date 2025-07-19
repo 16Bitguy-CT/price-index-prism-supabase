@@ -1,5 +1,6 @@
 
 import { User, Session } from '@supabase/supabase-js';
+import { LoginFormData, SignupFormData } from '@/lib/validations';
 
 export interface UserProfile {
   id: string;
@@ -28,26 +29,14 @@ export interface UserProfile {
   };
 }
 
-export interface SignupData {
-  email: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-}
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   userProfile: UserProfile | null;
   loading: boolean;
   error: string | null;
-  login: (data: LoginData) => Promise<void>;
-  signup: (data: SignupData) => Promise<void>;
+  login: (data: LoginFormData) => Promise<void>;
+  signup: (data: SignupFormData) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }

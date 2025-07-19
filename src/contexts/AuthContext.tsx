@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthContextType, UserProfile, SignupData, LoginData } from '@/types/auth';
+import { AuthContextType, UserProfile } from '@/types/auth';
+import { LoginFormData, SignupFormData } from '@/lib/validations';
 import { toast } from '@/hooks/use-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async ({ email, password }: LoginData) => {
+  const login = async ({ email, password }: LoginFormData) => {
     try {
       setLoading(true);
       setError(null);
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signup = async ({ email, password, first_name, last_name }: SignupData) => {
+  const signup = async ({ email, password, first_name, last_name }: SignupFormData) => {
     try {
       setLoading(true);
       setError(null);
