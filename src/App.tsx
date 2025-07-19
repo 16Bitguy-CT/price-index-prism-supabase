@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import EmergencySetup from "./pages/EmergencySetup";
+import EmergencyAdmin from "./pages/EmergencyAdmin";
 import Profile from "./pages/Profile";
 import OrganizationManagement from "./pages/OrganizationManagement";
 import MarketManagement from "./pages/MarketManagement";
@@ -38,6 +39,16 @@ const App = () => (
             
             {/* Emergency setup route - bypasses ProtectedRoute */}
             <Route path="/emergency-setup" element={<EmergencySetup />} />
+            
+            {/* Emergency admin route for super users */}
+            <Route
+              path="/emergency-admin"
+              element={
+                <ProtectedRoute requiredRole="super_user">
+                  <EmergencyAdmin />
+                </ProtectedRoute>
+              }
+            />
             
             {/* Protected routes */}
             <Route

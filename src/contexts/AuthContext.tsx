@@ -37,6 +37,84 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // Self-healing profile creation function
+  const attemptSelfHealingProfileCreation = async (userId: string, email: string, userMetadata: any) => {
+    try {
+      console.log('Attempting self-healing profile creation for:', email);
+      
+      // Get organization by email domain
+      const { data: orgId, error: domainError } = await supabase.rpc(
+        'get_organization_by_email_domain',
+        { email_address: email }
+      );
+
+      if (domainError || !orgId) {
+        throw new Error('No organization found for email domain');
+      }
+
+      // Get organization and market details
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select(`
+          id,
+          name,
+          requires_approval,
+          markets (id)
+        `)
+        .eq('id', orgId)
+        .single();
+
+      if (orgError || !org) {
+        throw new Error('Organization not found');
+      }
+
+      const marketId = org.markets?.[0]?.id || null;
+
+      // Create profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: userId,
+          email: email,
+          first_name: userMetadata?.first_name || null,
+          last_name: userMetadata?.last_name || null,
+          role: 'representative',
+          organization_id: org.id,
+          market_id: marketId,
+          is_active: !org.requires_approval,
+          approval_status: org.requires_approval ? 'pending' : 'approved',
+          approved_at: org.requires_approval ? null : new Date().toISOString()
+        })
+        .select(`
+          *,
+          organizations (
+            id,
+            name,
+            slug,
+            brand_name
+          ),
+          markets (
+            id,
+            name,
+            country,
+            currency
+          )
+        `)
+        .single();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      console.log('Self-healing profile created:', profileData);
+      setUserProfile(profileData as any); // TODO: Fix type assertion after DB foreign key fixes
+      return profileData;
+    } catch (error: any) {
+      console.error('Self-healing profile creation failed:', error);
+      throw error;
+    }
+  };
+
   const fetchUserProfile = async (userId: string, showToast: boolean = false) => {
     try {
       setProfileLoading(true);
@@ -82,13 +160,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (!data) {
         console.log('No profile found for user:', userId);
-        const errorMsg = 'No profile found for this user';
+        
+        // SELF-HEALING: Attempt to auto-create profile if missing
+        if (user?.email) {
+          console.log('Attempting self-healing profile creation...');
+          try {
+            const selfHealingResult = await attemptSelfHealingProfileCreation(userId, user.email, user.user_metadata);
+            if (selfHealingResult) {
+              console.log('Self-healing profile creation successful');
+              if (showToast) {
+                toast({
+                  title: "Profile Created",
+                  description: "Your profile was automatically created based on your email domain.",
+                });
+              }
+              return selfHealingResult;
+            }
+          } catch (selfHealError: any) {
+            console.error('Self-healing profile creation failed:', selfHealError);
+          }
+        }
+        
+        const errorMsg = 'Profile not found and could not be auto-created';
         setProfileError(errorMsg);
         
         if (showToast) {
           toast({
             title: "Profile Missing",
-            description: "Your user profile was not found. You can create it using the emergency setup.",
+            description: "Your user profile was not found. Please use the emergency setup or contact your administrator.",
             variant: "destructive",
           });
         }
@@ -96,14 +195,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       console.log('Profile fetched successfully:', data);
-      setUserProfile(data as UserProfile);
+      setUserProfile(data as any); // TODO: Fix type assertion after DB foreign key fixes
       setProfileError(null);
       
       // Initialize context state for super users
       if (data.role === 'super_user') {
         setCurrentOrgContext({
           organizationId: data.organization_id,
-          organizationName: data.organizations?.name || 'Unknown Organization',
+          organizationName: (data.organizations as any)?.name || 'Unknown Organization',
           isSwitched: false,
         });
       }

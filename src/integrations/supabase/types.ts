@@ -815,6 +815,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      emergency_activate_user: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
+      emergency_create_profile: {
+        Args: {
+          target_user_id: string
+          email_address: string
+          first_name_param: string
+          last_name_param: string
+          role_param?: Database["public"]["Enums"]["user_role"]
+          organization_id_param?: string
+          market_id_param?: string
+        }
+        Returns: string
+      }
+      emergency_deactivate_user: {
+        Args: { target_user_id: string; reason?: string }
+        Returns: boolean
+      }
+      emergency_fix_orphaned_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          action_taken: string
+        }[]
+      }
       get_current_context_info: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -859,6 +887,19 @@ export type Database = {
       get_organization_by_email_domain: {
         Args: { email_address: string }
         Returns: string
+      }
+      get_system_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users: number
+          active_users: number
+          pending_users: number
+          orphaned_users: number
+          total_organizations: number
+          active_organizations: number
+          total_markets: number
+          active_markets: number
+        }[]
       }
       is_email_domain_allowed: {
         Args: { email_address: string; org_id: string }
