@@ -6,11 +6,20 @@ import { DataTable } from '@/components/data-table/DataTable';
 import { FormDialog } from '@/components/forms/FormDialog';
 import { StatusBadge } from '@/components/status/StatusBadge';
 import { RoleBadge } from '@/components/status/RoleBadge';
-import { Plus, Edit, MoreHorizontal } from 'lucide-react';
+import { AdminAuditLog } from '@/components/admin/AdminAuditLog';
+import { CreateUserDialog, UserActionDialog, ChangeRoleDialog } from '@/components/admin/UserActionDialogs';
+import { Plus, Edit, MoreHorizontal, Shield, RotateCcw, UserX, Activity } from 'lucide-react';
 import { ColumnDef } from '@tanstack/react-table';
 import { useUserProfiles, useUpdateUserProfile } from '@/hooks/use-user-profiles';
 import { useOrganizations } from '@/hooks/use-organizations';
 import { useMarkets } from '@/hooks/use-markets';
+import { 
+  useCreateUser, 
+  useActivateUser, 
+  useDeactivateUser, 
+  useChangeUserRole,
+  CreateUserData 
+} from '@/hooks/use-enhanced-user-management';
 import { UserProfileFormData, userProfileSchema } from '@/lib/validations';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type UserProfile = {
   id: string;
@@ -236,8 +246,65 @@ function UserProfileForm({
 export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | undefined>();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [actionDialog, setActionDialog] = useState<{
+    type: 'activate' | 'deactivate' | 'change_role' | null;
+    user: UserProfile | null;
+  }>({ type: null, user: null });
   
   const { data: users = [], isLoading } = useUserProfiles();
+  const createUser = useCreateUser();
+  const activateUser = useActivateUser();
+  const deactivateUser = useDeactivateUser();
+  const changeRole = useChangeUserRole();
+
+  const handleCreateUser = async (data: CreateUserData) => {
+    try {
+      await createUser.mutateAsync(data);
+      setIsCreateUserOpen(false);
+    } catch (error) {
+      // Error handled in the mutation
+    }
+  };
+
+  const handleUserAction = async (action: string, reason?: string) => {
+    if (!actionDialog.user) return;
+
+    try {
+      switch (action) {
+        case 'activate':
+          await activateUser.mutateAsync({ 
+            userId: actionDialog.user.user_id, 
+            reason 
+          });
+          break;
+        case 'deactivate':
+          await deactivateUser.mutateAsync({ 
+            userId: actionDialog.user.user_id, 
+            reason 
+          });
+          break;
+      }
+      setActionDialog({ type: null, user: null });
+    } catch (error) {
+      // Error handled in the mutations
+    }
+  };
+
+  const handleRoleChange = async (newRole: string, reason?: string) => {
+    if (!actionDialog.user) return;
+
+    try {
+      await changeRole.mutateAsync({
+        userId: actionDialog.user.user_id,
+        newRole: newRole as any,
+        reason,
+      });
+      setActionDialog({ type: null, user: null });
+    } catch (error) {
+      // Error handled in the mutation
+    }
+  };
 
   const columns: ColumnDef<UserProfile>[] = [
     {
@@ -301,8 +368,33 @@ export default function UserManagement() {
                 }}
               >
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                Edit Profile
               </DropdownMenuItem>
+              
+              <DropdownMenuItem
+                onClick={() => setActionDialog({ type: 'change_role', user })}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Change Role
+              </DropdownMenuItem>
+              
+              {user.is_active ? (
+                <DropdownMenuItem
+                  onClick={() => setActionDialog({ type: 'deactivate', user })}
+                  className="text-red-600"
+                >
+                  <UserX className="mr-2 h-4 w-4" />
+                  Deactivate
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => setActionDialog({ type: 'activate', user })}
+                  className="text-green-600"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Activate
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -319,33 +411,91 @@ export default function UserManagement() {
     <div className="space-y-6">
       <PageHeader
         title="User Management"
-        description="Manage user profiles and their roles"
+        description="Manage user profiles, roles, and administrative actions"
         actions={
-          <FormDialog
-            title="Edit User Profile"
-            trigger={
-              <Button disabled>
-                <Plus className="h-4 w-4 mr-2" />
-                Add User (Coming Soon)
-              </Button>
-            }
-            open={isFormOpen}
-            onOpenChange={setIsFormOpen}
-          >
-            <UserProfileForm 
-              userProfile={selectedUser}
-              onSuccess={handleFormSuccess}
-            />
-          </FormDialog>
+          <Button onClick={() => setIsCreateUserOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
         }
       />
-      
-      <DataTable
-        columns={columns}
-        data={users}
-        searchKey="email"
-        searchPlaceholder="Search users..."
-        isLoading={isLoading}
+
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="audit">
+            <Activity className="h-4 w-4 mr-2" />
+            Activity Log
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-6">
+          <DataTable
+            columns={columns}
+            data={users}
+            searchKey="email"
+            searchPlaceholder="Search users..."
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AdminAuditLog />
+        </TabsContent>
+      </Tabs>
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={isCreateUserOpen}
+        onOpenChange={setIsCreateUserOpen}
+        onSubmit={handleCreateUser}
+        isLoading={createUser.isPending}
+      />
+
+      {/* Edit User Profile Dialog */}
+      <FormDialog
+        title="Edit User Profile"
+        trigger={<div />}
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+      >
+        <UserProfileForm 
+          userProfile={selectedUser}
+          onSuccess={handleFormSuccess}
+        />
+      </FormDialog>
+
+      {/* User Action Dialogs */}
+      <UserActionDialog
+        open={actionDialog.type === 'activate'}
+        onOpenChange={(open) => !open && setActionDialog({ type: null, user: null })}
+        title="Activate User"
+        description={`Are you sure you want to activate ${actionDialog.user?.first_name} ${actionDialog.user?.last_name}? This will restore their access to the system.`}
+        onConfirm={(reason) => handleUserAction('activate', reason)}
+        isLoading={activateUser.isPending}
+        requiresReason={true}
+        confirmText="Activate User"
+        variant="default"
+      />
+
+      <UserActionDialog
+        open={actionDialog.type === 'deactivate'}
+        onOpenChange={(open) => !open && setActionDialog({ type: null, user: null })}
+        title="Deactivate User"
+        description={`Are you sure you want to deactivate ${actionDialog.user?.first_name} ${actionDialog.user?.last_name}? This will remove their access to the system.`}
+        onConfirm={(reason) => handleUserAction('deactivate', reason)}
+        isLoading={deactivateUser.isPending}
+        requiresReason={true}
+        confirmText="Deactivate User"
+        variant="destructive"
+      />
+
+      <ChangeRoleDialog
+        open={actionDialog.type === 'change_role'}
+        onOpenChange={(open) => !open && setActionDialog({ type: null, user: null })}
+        currentRole={actionDialog.user?.role || ''}
+        onConfirm={handleRoleChange}
+        isLoading={changeRole.isPending}
       />
     </div>
   );
