@@ -1,0 +1,127 @@
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { ChannelFormData } from '@/lib/validations';
+import { toast } from '@/hooks/use-toast';
+
+export function useChannels() {
+  return useQuery({
+    queryKey: ['channels'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('channels')
+        .select(`
+          *,
+          organizations:organization_id (
+            id,
+            name
+          ),
+          markets:market_id (
+            id,
+            name,
+            country
+          ),
+          channel_segments:segment_id (
+            id,
+            segment_type
+          )
+        `)
+        .order('channel_type');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ChannelFormData) => {
+      const { data: result, error } = await supabase
+        .from('channels')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      toast({
+        title: "Success",
+        description: "Channel created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create channel.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdateChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ChannelFormData> }) => {
+      const { data: result, error } = await supabase
+        .from('channels')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      toast({
+        title: "Success",
+        description: "Channel updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update channel.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('channels')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      toast({
+        title: "Success",
+        description: "Channel deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete channel.",
+        variant: "destructive",
+      });
+    },
+  });
+}
