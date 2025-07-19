@@ -52,7 +52,7 @@ export function LoginForm() {
     return 'Sign in';
   };
 
-  const isLoading = operationLoading || (profileLoading && user);
+  const isLoading = operationLoading || (profileLoading && !!user);
 
   return (
     <div className="space-y-6">
