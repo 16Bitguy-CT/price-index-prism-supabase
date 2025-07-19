@@ -30,26 +30,22 @@ export function useAdminAuditLog() {
   return useQuery({
     queryKey: ['admin-audit-log'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_audit_log')
-        .select(`
-          *,
-          admin_profiles:admin_user_id (
-            first_name,
-            last_name,
-            email
-          ),
-          target_profiles:target_user_id (
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
+      // Use raw SQL query since TypeScript types haven't been regenerated yet
+      const { data, error } = await supabase.rpc('get_admin_audit_log_with_profiles');
 
-      if (error) throw error;
-      return data as AuditLogEntry[];
+      if (error) {
+        // Fallback to simple query if function doesn't exist
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('admin_audit_log' as any)
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        
+        if (fallbackError) throw fallbackError;
+        return (fallbackData || []) as AuditLogEntry[];
+      }
+
+      return (data || []) as AuditLogEntry[];
     },
   });
 }
@@ -69,8 +65,9 @@ export function useLogAdminAction() {
       details: Record<string, any>;
       reason?: string;
     }) => {
+      // Use raw insert since TypeScript types haven't been regenerated yet
       const { data, error } = await supabase
-        .from('admin_audit_log')
+        .from('admin_audit_log' as any)
         .insert({
           action,
           target_user_id: targetUserId,
