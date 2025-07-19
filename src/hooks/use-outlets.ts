@@ -3,10 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OutletFormData } from '@/lib/validations';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function useOutlets() {
+  const { userProfile } = useAuth();
+  
   return useQuery({
-    queryKey: ['outlets'],
+    queryKey: ['outlets', userProfile?.role, userProfile?.organization_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('outlets')

@@ -17,8 +17,13 @@ export function useOrganizationContext() {
       return data;
     },
     onSuccess: () => {
-      // Invalidate all queries to refetch with new context
-      queryClient.invalidateQueries();
+      // Invalidate specific queries to refetch with new context
+      queryClient.invalidateQueries({ queryKey: ['markets'] });
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['outlets'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-segments'] });
       toast({
         title: "Organization Context Switched",
         description: "You are now viewing data for the selected organization.",
@@ -41,8 +46,13 @@ export function useOrganizationContext() {
       return data;
     },
     onSuccess: () => {
-      // Invalidate all queries to refetch with home organization context
-      queryClient.invalidateQueries();
+      // Invalidate specific queries to refetch with home organization context
+      queryClient.invalidateQueries({ queryKey: ['markets'] });
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['outlets'] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['channel-segments'] });
       toast({
         title: "Returned to Home Organization",
         description: "You are now viewing your home organization's data.",

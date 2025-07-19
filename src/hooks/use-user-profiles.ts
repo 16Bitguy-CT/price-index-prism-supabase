@@ -3,10 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfileFormData } from '@/lib/validations';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function useUserProfiles() {
+  const { userProfile } = useAuth();
+  
   return useQuery({
-    queryKey: ['user-profiles'],
+    queryKey: ['user-profiles', userProfile?.role, userProfile?.organization_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_profiles')
