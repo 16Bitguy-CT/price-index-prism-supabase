@@ -69,6 +69,35 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
+  // Handle pending approval status
+  if (userProfile.approval_status === 'pending') {
+    // Don't redirect to pending approval page if already there
+    if (location.pathname === '/pending-approval') {
+      return <>{children}</>;
+    }
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  // Handle rejected status
+  if (userProfile.approval_status === 'rejected') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-semibold mb-2">Account Rejected</h1>
+          <p className="text-muted-foreground mb-4">
+            Your registration has been rejected. {userProfile.rejection_reason && `Reason: ${userProfile.rejection_reason}`}
+          </p>
+          <Button
+            variant="outline"
+            onClick={emergencyLogout}
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Handle inactive profile case
   if (!userProfile.is_active) {
     return (

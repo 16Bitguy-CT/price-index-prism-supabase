@@ -9,7 +9,8 @@ import {
   Tags, 
   Store, 
   Users, 
-  User 
+  User,
+  UserCheck
 } from 'lucide-react';
 import {
   Sidebar,
@@ -67,6 +68,12 @@ const navigationItems: NavigationItem[] = [
     title: 'User Management',
     url: '/users',
     icon: Users,
+    roles: ['super_user', 'power_user', 'market_admin'],
+  },
+  {
+    title: 'User Approval',
+    url: '/user-approval',
+    icon: UserCheck,
     roles: ['super_user', 'power_user', 'market_admin'],
   },
 ];

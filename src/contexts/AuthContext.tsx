@@ -59,7 +59,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           )
         `)
         .eq('user_id', userId)
-        .eq('is_active', true)
         .maybeSingle();
 
       if (error) {
@@ -93,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       console.log('Profile fetched successfully:', data);
-      setUserProfile(data);
+      setUserProfile(data as UserProfile);
       setProfileError(null);
       return data;
     } catch (error: any) {
@@ -234,6 +233,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('Starting signup process for:', email);
 
+      // First, validate email domain and find organization
+      const { data: orgId, error: domainError } = await supabase.rpc(
+        'get_organization_by_email_domain',
+        { email_address: email }
+      );
+
+      if (domainError || !orgId) {
+        throw new Error('Email domain not allowed. Please contact your administrator.');
+      }
+
+      // Get organization details
+      const { data: organization, error: orgDetailError } = await supabase
+        .from('organizations')
+        .select('id, name, requires_approval, markets(id)')
+        .eq('id', orgId)
+        .single();
+
+      if (orgDetailError || !organization) {
+        throw new Error('Organization not found');
+      }
+
+      const marketId = organization.markets?.[0]?.id || null;
+
+      // Create auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -256,32 +279,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // If user is immediately logged in, attempt to create profile
+      // If user is immediately logged in, create profile with approval status
       if (data.user && data.session) {
         console.log('User logged in immediately, creating profile...');
         
         try {
-          // Get the default organization (Angle Orange)
-          const { data: orgData, error: orgError } = await supabase
-            .from('organizations')
-            .select('id, markets(id)')
-            .eq('name', 'Angle Orange')
-            .single();
-
-          if (orgError) {
-            console.error('Error fetching organization:', orgError);
-            throw new Error('Could not find default organization. Please contact support.');
-          }
-
-          if (!orgData) {
-            throw new Error('Default organization not found. Please contact support.');
-          }
-
-          const marketId = orgData.markets?.[0]?.id || null;
+          console.log('Creating profile with org:', organization.id, 'market:', marketId);
           
-          console.log('Creating profile with org:', orgData.id, 'market:', marketId);
-          
-          // Create user profile with better error handling
+          // Create user profile with approval workflow
           const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             .insert({
@@ -289,10 +294,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
               email: data.user.email,
               first_name,
               last_name,
-              role: 'representative', // Default role for new signups
-              organization_id: orgData.id,
+              role: 'representative',
+              organization_id: organization.id,
               market_id: marketId,
-              is_active: true,
+              is_active: !organization.requires_approval,
+              approval_status: organization.requires_approval ? 'pending' : 'approved',
+              approved_at: organization.requires_approval ? null : new Date().toISOString()
             })
             .select()
             .single();
@@ -300,7 +307,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (profileError) {
             console.error('Profile creation failed:', profileError);
             
-            // Don't fail the signup, but warn the user
             toast({
               title: "Signup successful, but profile creation failed",
               description: "You can complete your profile setup using the emergency setup page.",
@@ -311,10 +317,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           console.log('Profile created successfully:', profileData);
           
-          toast({
-            title: "Account created!",
-            description: "Welcome to the Price Index Management System.",
-          });
+          if (organization.requires_approval) {
+            toast({
+              title: "Account Created",
+              description: "Your account is pending approval. You'll receive an email when approved.",
+            });
+          } else {
+            toast({
+              title: "Account created!",
+              description: "Welcome to the Price Index Management System.",
+            });
+          }
         } catch (profileCreationError: any) {
           console.error('Profile creation process failed:', profileCreationError);
           

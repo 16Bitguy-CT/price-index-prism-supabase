@@ -12,6 +12,10 @@ export interface UserProfile {
   organization_id: string;
   market_id: string | null;
   is_active: boolean;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
   // Relations (when joined)

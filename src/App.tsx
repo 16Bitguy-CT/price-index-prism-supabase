@@ -18,6 +18,8 @@ import ChannelManagement from "./pages/ChannelManagement";
 import SegmentManagement from "./pages/SegmentManagement";
 import OutletManagement from "./pages/OutletManagement";
 import UserManagement from "./pages/UserManagement";
+import UserApproval from "./pages/UserApproval";
+import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -120,6 +122,19 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/user-approval"
+              element={
+                <ProtectedRoute requiredRole="market_admin">
+                  <AppLayout>
+                    <UserApproval />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Special route for pending approval */}
+            <Route path="/pending-approval" element={<PendingApproval />} />
             
             {/* Redirect /auth to login */}
             <Route path="/auth" element={<Navigate to="/auth/login" replace />} />

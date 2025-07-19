@@ -172,6 +172,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          allowed_email_domains: Json | null
           brand_name: string | null
           created_at: string
           created_by_user_id: string | null
@@ -181,12 +182,14 @@ export type Database = {
           name: string
           primary_color: string | null
           primary_domain: string | null
+          requires_approval: boolean | null
           secondary_color: string | null
           slug: string
           third_party_domain: string | null
           updated_at: string
         }
         Insert: {
+          allowed_email_domains?: Json | null
           brand_name?: string | null
           created_at?: string
           created_by_user_id?: string | null
@@ -196,12 +199,14 @@ export type Database = {
           name: string
           primary_color?: string | null
           primary_domain?: string | null
+          requires_approval?: boolean | null
           secondary_color?: string | null
           slug: string
           third_party_domain?: string | null
           updated_at?: string
         }
         Update: {
+          allowed_email_domains?: Json | null
           brand_name?: string | null
           created_at?: string
           created_by_user_id?: string | null
@@ -211,6 +216,7 @@ export type Database = {
           name?: string
           primary_color?: string | null
           primary_domain?: string | null
+          requires_approval?: boolean | null
           secondary_color?: string | null
           slug?: string
           third_party_domain?: string | null
@@ -525,6 +531,9 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by_user_id: string | null
           created_at: string
           created_by_user_id: string | null
           email: string | null
@@ -534,11 +543,15 @@ export type Database = {
           last_name: string | null
           market_id: string | null
           organization_id: string
+          rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by_user_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           email?: string | null
@@ -548,11 +561,15 @@ export type Database = {
           last_name?: string | null
           market_id?: string | null
           organization_id: string
+          rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by_user_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
           email?: string | null
@@ -562,11 +579,19 @@ export type Database = {
           last_name?: string | null
           market_id?: string | null
           organization_id?: string
+          rejection_reason?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_profiles_approved_by_user_id_fkey"
+            columns: ["approved_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_profiles_market_id_fkey"
             columns: ["market_id"]
@@ -600,6 +625,9 @@ export type Database = {
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
         Returns: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by_user_id: string | null
           created_at: string
           created_by_user_id: string | null
           email: string | null
@@ -609,10 +637,19 @@ export type Database = {
           last_name: string | null
           market_id: string | null
           organization_id: string
+          rejection_reason: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
         }
+      }
+      get_organization_by_email_domain: {
+        Args: { email_address: string }
+        Returns: string
+      }
+      is_email_domain_allowed: {
+        Args: { email_address: string; org_id: string }
+        Returns: boolean
       }
     }
     Enums: {
