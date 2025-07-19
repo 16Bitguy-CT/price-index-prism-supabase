@@ -85,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (showToast) {
           toast({
             title: "Profile Missing",
-            description: "Your user profile was not found. Please contact support or try logging out and back in.",
+            description: "Your user profile was not found. You can create it using the emergency setup.",
             variant: "destructive",
           });
         }
@@ -232,6 +232,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setProfileError(null);
 
+      console.log('Starting signup process for:', email);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -251,46 +253,81 @@ export function AuthProvider({ children }: AuthProviderProps) {
           title: "Check your email",
           description: "We've sent you a confirmation link to complete your registration.",
         });
-      } else {
-        // If user is immediately logged in, create profile
-        if (data.user) {
-          // Get the seeded organization (Angle Orange)
-          const { data: orgData } = await supabase
+        return;
+      }
+
+      // If user is immediately logged in, attempt to create profile
+      if (data.user && data.session) {
+        console.log('User logged in immediately, creating profile...');
+        
+        try {
+          // Get the default organization (Angle Orange)
+          const { data: orgData, error: orgError } = await supabase
             .from('organizations')
             .select('id, markets(id)')
             .eq('name', 'Angle Orange')
             .single();
 
-          if (orgData) {
-            const marketId = orgData.markets?.[0]?.id || null;
-            
-            // Create user profile
-            const { error: profileError } = await supabase
-              .from('user_profiles')
-              .insert({
-                user_id: data.user.id,
-                email: data.user.email,
-                first_name,
-                last_name,
-                role: 'super_user', // For initial dev
-                organization_id: orgData.id,
-                market_id: marketId,
-                is_active: true,
-              });
-
-            if (profileError) {
-              console.error('Error creating user profile:', profileError);
-            }
+          if (orgError) {
+            console.error('Error fetching organization:', orgError);
+            throw new Error('Could not find default organization. Please contact support.');
           }
-        }
 
-        toast({
-          title: "Account created!",
-          description: "Welcome to the Price Index Management System.",
-        });
+          if (!orgData) {
+            throw new Error('Default organization not found. Please contact support.');
+          }
+
+          const marketId = orgData.markets?.[0]?.id || null;
+          
+          console.log('Creating profile with org:', orgData.id, 'market:', marketId);
+          
+          // Create user profile with better error handling
+          const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: data.user.id,
+              email: data.user.email,
+              first_name,
+              last_name,
+              role: 'representative', // Default role for new signups
+              organization_id: orgData.id,
+              market_id: marketId,
+              is_active: true,
+            })
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error('Profile creation failed:', profileError);
+            
+            // Don't fail the signup, but warn the user
+            toast({
+              title: "Signup successful, but profile creation failed",
+              description: "You can complete your profile setup using the emergency setup page.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          console.log('Profile created successfully:', profileData);
+          
+          toast({
+            title: "Account created!",
+            description: "Welcome to the Price Index Management System.",
+          });
+        } catch (profileCreationError: any) {
+          console.error('Profile creation process failed:', profileCreationError);
+          
+          toast({
+            title: "Signup completed with issues",
+            description: `Your account was created but there was an issue setting up your profile: ${profileCreationError.message}. You can complete the setup using the emergency setup page.`,
+            variant: "destructive",
+          });
+        }
       }
     } catch (error: any) {
       const errorMessage = error?.message || 'An error occurred during signup';
+      console.error('Signup failed:', errorMessage);
       setError(errorMessage);
       toast({
         title: "Signup failed",

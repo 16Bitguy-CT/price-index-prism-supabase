@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import EmergencySetup from "./pages/EmergencySetup";
 import Profile from "./pages/Profile";
 import OrganizationManagement from "./pages/OrganizationManagement";
 import MarketManagement from "./pages/MarketManagement";
@@ -32,6 +33,9 @@ const App = () => (
             {/* Auth routes */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
+            
+            {/* Emergency setup route - bypasses ProtectedRoute */}
+            <Route path="/emergency-setup" element={<EmergencySetup />} />
             
             {/* Protected routes */}
             <Route

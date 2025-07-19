@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ const roleHierarchy = {
 };
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, userProfile, loading, profileLoading } = useAuth();
+  const { user, userProfile, loading, profileLoading, profileError, emergencyLogout } = useAuth();
   const location = useLocation();
 
   // Show loading while auth is initializing or profile is loading
@@ -32,19 +33,63 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  if (!userProfile || !userProfile.is_active) {
+  // Handle missing profile case differently from inactive profile
+  if (!userProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-2">Account Not Active</h1>
-          <p className="text-muted-foreground">
-            Please contact your administrator to activate your account.
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-semibold mb-2">Profile Setup Required</h1>
+          <p className="text-muted-foreground mb-4">
+            {profileError 
+              ? "Your profile could not be loaded. This might be because your profile was not created properly during signup."
+              : "Your user profile is missing and needs to be created."
+            }
           </p>
+          <div className="space-y-2">
+            <Link to="/emergency-setup">
+              <Button className="w-full">
+                Complete Profile Setup
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={emergencyLogout}
+              className="w-full"
+            >
+              Logout and Try Again
+            </Button>
+          </div>
+          {profileError && (
+            <p className="text-xs text-muted-foreground mt-4">
+              Error: {profileError}
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
+  // Handle inactive profile case
+  if (!userProfile.is_active) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-semibold mb-2">Account Not Active</h1>
+          <p className="text-muted-foreground mb-4">
+            Your account exists but has been deactivated. Please contact your administrator to reactivate your account.
+          </p>
+          <Button
+            variant="outline"
+            onClick={emergencyLogout}
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle insufficient role permissions
   if (requiredRole) {
     const userRoleLevel = roleHierarchy[userProfile.role];
     const requiredRoleLevel = roleHierarchy[requiredRole];
