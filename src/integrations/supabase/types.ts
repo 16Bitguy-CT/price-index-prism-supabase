@@ -170,6 +170,39 @@ export type Database = {
           },
         ]
       }
+      organization_context_log: {
+        Row: {
+          id: string
+          ip_address: unknown | null
+          session_id: string | null
+          switched_at: string
+          switched_from_org_id: string
+          switched_to_org_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          switched_at?: string
+          switched_from_org_id: string
+          switched_to_org_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: unknown | null
+          session_id?: string | null
+          switched_at?: string
+          switched_from_org_id?: string
+          switched_to_org_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           allowed_email_domains: Json | null
@@ -613,6 +646,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_context_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_role: Database["public"]["Enums"]["user_role"]
+          home_org_id: string
+          current_org_id: string
+          market_id: string
+          is_active: boolean
+          is_context_switched: boolean
+        }[]
+      }
       get_current_user_info: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -649,6 +693,14 @@ export type Database = {
       }
       is_email_domain_allowed: {
         Args: { email_address: string; org_id: string }
+        Returns: boolean
+      }
+      reset_organization_context: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      switch_organization_context: {
+        Args: { target_org_id: string }
         Returns: boolean
       }
     }

@@ -33,6 +33,14 @@ export interface UserProfile {
   };
 }
 
+export interface OrganizationContext {
+  homeOrgId: string;
+  currentOrgId: string;
+  isContextSwitched: boolean;
+  switchToOrganization: (orgId: string) => Promise<void>;
+  resetToHomeOrganization: () => Promise<void>;
+}
+
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -47,4 +55,5 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   emergencyLogout?: () => Promise<void>; // Emergency logout when stuck
+  organizationContext?: OrganizationContext; // Organization context for super users
 }
