@@ -588,6 +588,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_role: Database["public"]["Enums"]["user_role"]
+          org_id: string
+          market_id: string
+          is_active: boolean
+        }[]
+      }
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -604,10 +613,6 @@ export type Database = {
           updated_at: string
           user_id: string
         }
-      }
-      user_has_role_or_higher: {
-        Args: { required_role: Database["public"]["Enums"]["user_role"] }
-        Returns: boolean
       }
     }
     Enums: {
