@@ -15,11 +15,11 @@ export function useChannelSegments() {
         .from('channel_segments')
         .select(`
           *,
-          organizations:organization_id (
+          organizations!channel_segments_organization_id_fkey (
             id,
             name
           ),
-          markets:market_id (
+          markets!channel_segments_market_id_fkey (
             id,
             name,
             country

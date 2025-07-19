@@ -16,12 +16,12 @@ export function useUserProfiles() {
         .from('user_profiles')
         .select(`
           *,
-          organizations:organization_id (
+          organizations!user_profiles_organization_id_fkey (
             id,
             name,
             brand_name
           ),
-          markets:market_id (
+          markets!user_profiles_market_id_fkey (
             id,
             name,
             country

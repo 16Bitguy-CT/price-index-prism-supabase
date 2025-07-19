@@ -15,15 +15,15 @@ export function useOutlets() {
         .from('outlets')
         .select(`
           *,
-          organizations:organization_id (
+          organizations!outlets_organization_id_fkey (
             id,
             name
           ),
-          channels:channel_id (
+          channels!outlets_channel_id_fkey (
             id,
             channel_type,
             segment_id,
-            channel_segments:segment_id (
+            channel_segments!channels_segment_id_fkey (
               id,
               segment_type
             )

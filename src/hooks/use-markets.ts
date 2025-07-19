@@ -16,7 +16,7 @@ export function useMarkets() {
         .from('markets')
         .select(`
           *,
-          organizations:organization_id (
+          organizations!markets_organization_id_fkey (
             id,
             name,
             brand_name
