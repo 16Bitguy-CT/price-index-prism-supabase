@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +19,11 @@ const emergencySetupSchema = z.object({
 });
 
 type EmergencySetupFormData = z.infer<typeof emergencySetupSchema>;
+
+const isAngleOrangeUser = (email: string | undefined): boolean => {
+  if (!email) return false;
+  return email.toLowerCase().endsWith('@angleorange.com');
+};
 
 export default function EmergencySetup() {
   const { user, refreshProfile } = useAuth();
@@ -43,6 +47,18 @@ export default function EmergencySetup() {
       role: 'representative',
     },
   });
+
+  // Check domain authorization
+  React.useEffect(() => {
+    if (user && !isAngleOrangeUser(user.email)) {
+      console.log('Unauthorized emergency setup access attempt:', user.email);
+      toast({
+        title: "Access Denied",
+        description: "Emergency setup is only available for AngleOrange employees.",
+        variant: "destructive",
+      });
+    }
+  }, [user]);
 
   React.useEffect(() => {
     fetchOrganizations();
@@ -186,6 +202,54 @@ export default function EmergencySetup() {
             <p className="text-muted-foreground">
               You must be logged in to access this page.
             </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Domain restriction check
+  if (!isAngleOrangeUser(user.email)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Access Restricted</CardTitle>
+            <CardDescription>
+              Emergency profile setup is only available for AngleOrange employees
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              This emergency setup page is restricted to users with @angleorange.com email addresses.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Your current email: <span className="font-mono">{user.email}</span>
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">What to do:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Contact your system administrator for profile setup</li>
+                <li>Use your AngleOrange email address if you have one</li>
+                <li>Request access through proper channels</li>
+              </ul>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/auth/login')}
+                className="flex-1"
+              >
+                Back to Login
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="flex-1"
+              >
+                Go Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
