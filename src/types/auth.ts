@@ -33,10 +33,14 @@ export interface AuthContextType {
   user: User | null;
   session: Session | null;
   userProfile: UserProfile | null;
-  loading: boolean;
+  loading: boolean; // Initial auth loading
+  operationLoading?: boolean; // Login/logout operations
+  profileLoading?: boolean; // Profile fetching
   error: string | null;
+  profileError?: string | null; // Separate profile errors
   login: (data: LoginFormData) => Promise<void>;
   signup: (data: SignupFormData) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  emergencyLogout?: () => Promise<void>; // Emergency logout when stuck
 }

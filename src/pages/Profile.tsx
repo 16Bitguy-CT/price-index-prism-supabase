@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/use-profile';
 import { profileUpdateSchema, ProfileUpdateFormData } from '@/lib/validations';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export default function Profile() {
-  const { userProfile, refreshProfile } = useAuth();
+  const { profile, profileStatus, refreshProfile, isAuthenticated } = useProfile();
   
   const {
     register,
@@ -21,14 +21,14 @@ export default function Profile() {
   } = useForm<ProfileUpdateFormData>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
-      first_name: userProfile?.first_name || '',
-      last_name: userProfile?.last_name || '',
-      email: userProfile?.email || '',
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      email: profile?.email || '',
     },
   });
 
   const onSubmit = async (data: ProfileUpdateFormData) => {
-    if (!userProfile) return;
+    if (!profile) return;
 
     try {
       const { error } = await supabase
@@ -38,7 +38,7 @@ export default function Profile() {
           last_name: data.last_name,
           email: data.email,
         })
-        .eq('id', userProfile.id);
+        .eq('id', profile.id);
 
       if (error) throw error;
 
@@ -57,10 +57,42 @@ export default function Profile() {
     }
   };
 
-  if (!userProfile) {
+  // Show loading state
+  if (profileStatus.loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (profileStatus.error || profileStatus.missing) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Profile Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              {profileStatus.error || 'Your profile could not be found.'}
+            </p>
+            <Button onClick={refreshProfile}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-muted-foreground">No profile data available</p>
+        </div>
       </div>
     );
   }
@@ -95,8 +127,8 @@ export default function Profile() {
               <div>
                 <Label className="text-sm font-medium">Role</Label>
                 <div className="mt-1">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${roleBadgeColor[userProfile.role]}`}>
-                    {userProfile.role.replace('_', ' ')}
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${roleBadgeColor[profile.role]}`}>
+                    {profile.role.replace('_', ' ')}
                   </span>
                 </div>
               </div>
@@ -104,9 +136,9 @@ export default function Profile() {
                 <Label className="text-sm font-medium">Status</Label>
                 <div className="mt-1">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    userProfile.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    profile.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
-                    {userProfile.is_active ? 'Active' : 'Inactive'}
+                    {profile.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
@@ -115,15 +147,15 @@ export default function Profile() {
             <div>
               <Label className="text-sm font-medium">Organization</Label>
               <p className="mt-1 text-sm text-foreground">
-                {userProfile.organizations?.name || 'No organization assigned'}
+                {profile.organizations?.name || 'No organization assigned'}
               </p>
             </div>
 
-            {userProfile.markets && (
+            {profile.markets && (
               <div>
                 <Label className="text-sm font-medium">Market</Label>
                 <p className="mt-1 text-sm text-foreground">
-                  {userProfile.markets.name} ({userProfile.markets.country})
+                  {profile.markets.name} ({profile.markets.country})
                 </p>
               </div>
             )}
