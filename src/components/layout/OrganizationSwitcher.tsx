@@ -12,33 +12,68 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizations } from '@/hooks/use-organizations';
-import { useOrganizationContext } from '@/hooks/use-organization-context';
+import { toast } from '@/hooks/use-toast';
 
 export function OrganizationSwitcher() {
-  const { userProfile } = useAuth();
+  const { userProfile, organizationContext } = useAuth();
   const { data: organizations = [] } = useOrganizations();
-  const { switchToOrganization, resetToHomeOrganization, isLoading, isSuperUser } = useOrganizationContext();
 
-  if (!userProfile?.organizations) return null;
+  if (!userProfile?.organizations || userProfile.role !== 'super_user') return null;
 
   const currentOrg = userProfile.organizations.name;
   const currentMarket = userProfile.markets?.name;
-  const isSwitched = userProfile.organization_id !== userProfile.organizations.id; // This would need to be tracked differently in real implementation
+  const isSwitched = organizationContext?.isContextSwitched || false;
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSwitchOrganization = async (orgId: string) => {
+  const handleSwitchOrganization = async (orgId: string, orgName: string) => {
+    if (!organizationContext) return;
+    
     try {
-      await switchToOrganization(orgId);
-    } catch (error) {
-      // Error handling is done in the hook
+      setIsLoading(true);
+      await organizationContext.switchToOrganization(orgId, orgName);
+      toast({
+        title: "Organization Context Switched",
+        description: `You are now viewing data for ${orgName}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to switch organization context.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleResetToHome = async () => {
+    if (!organizationContext) return;
+    
     try {
-      await resetToHomeOrganization();
-    } catch (error) {
-      // Error handling is done in the hook
+      setIsLoading(true);
+      await organizationContext.resetToHomeOrganization();
+      toast({
+        title: "Returned to Home Organization",
+        description: "You are now viewing your home organization's data.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset organization context.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Get the currently displayed organization name
+  const getCurrentDisplayName = () => {
+    if (isSwitched && organizationContext) {
+      const switchedOrg = organizations.find(org => org.id === organizationContext.currentOrgId);
+      return switchedOrg?.name || 'Unknown Organization';
+    }
+    return currentOrg;
   };
 
   return (
@@ -49,16 +84,19 @@ export function OrganizationSwitcher() {
             <Building2 className="h-4 w-4" />
             <div className="text-left">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">{currentOrg}</p>
+                <p className="text-sm font-medium">{getCurrentDisplayName()}</p>
                 {isSwitched && (
                   <ArrowLeftRight className="h-3 w-3 text-orange-500" />
                 )}
               </div>
-              {currentMarket && (
+              {currentMarket && !isSwitched && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
                   {currentMarket}
                 </p>
+              )}
+              {isSwitched && (
+                <p className="text-xs text-orange-500">Switched Context</p>
               )}
             </div>
           </div>
@@ -69,53 +107,44 @@ export function OrganizationSwitcher() {
         <DropdownMenuLabel>Organization Context</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {isSuperUser ? (
+        {isSwitched && (
           <>
-            {isSwitched && (
-              <>
-                <DropdownMenuItem onClick={handleResetToHome} disabled={isLoading}>
-                  <Home className="h-4 w-4 mr-2" />
-                  Return to Home Organization
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            
-            <DropdownMenuLabel className="text-xs">Switch to Organization</DropdownMenuLabel>
-            {organizations.map((org) => (
-              <DropdownMenuItem 
-                key={org.id}
-                onClick={() => handleSwitchOrganization(org.id)}
-                disabled={isLoading || org.id === userProfile.organizations?.id}
-                className={org.id === userProfile.organizations?.id ? "bg-muted" : ""}
-              >
-                <Building2 className="h-4 w-4 mr-2" />
-                <div>
-                  <p className="font-medium">{org.name}</p>
-                  {org.brand_name && (
-                    <p className="text-xs text-muted-foreground">{org.brand_name}</p>
-                  )}
-                </div>
-                {org.id === userProfile.organizations?.id && (
-                  <span className="ml-auto text-xs text-muted-foreground">Current</span>
-                )}
-              </DropdownMenuItem>
-            ))}
-          </>
-        ) : (
-          <>
-            <DropdownMenuItem disabled>
-              <Building2 className="h-4 w-4 mr-2" />
-              {currentOrg}
+            <DropdownMenuItem onClick={handleResetToHome} disabled={isLoading}>
+              <Home className="h-4 w-4 mr-2" />
+              Return to Home Organization
             </DropdownMenuItem>
-            {currentMarket && (
-              <DropdownMenuItem disabled>
-                <MapPin className="h-4 w-4 mr-2" />
-                {currentMarket}
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuSeparator />
           </>
         )}
+        
+        <DropdownMenuLabel className="text-xs">Switch to Organization</DropdownMenuLabel>
+        {organizations.map((org) => {
+          const isCurrentContext = org.id === organizationContext?.currentOrgId;
+          const isHomeOrg = org.id === userProfile.organization_id;
+          
+          return (
+            <DropdownMenuItem 
+              key={org.id}
+              onClick={() => handleSwitchOrganization(org.id, org.name)}
+              disabled={isLoading || isCurrentContext}
+              className={isCurrentContext ? "bg-muted" : ""}
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              <div>
+                <p className="font-medium">{org.name}</p>
+                {org.brand_name && (
+                  <p className="text-xs text-muted-foreground">{org.brand_name}</p>
+                )}
+              </div>
+              {isCurrentContext && (
+                <span className="ml-auto text-xs text-muted-foreground">Current</span>
+              )}
+              {isHomeOrg && !isCurrentContext && (
+                <span className="ml-auto text-xs text-blue-500">Home</span>
+              )}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

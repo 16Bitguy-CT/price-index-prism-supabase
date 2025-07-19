@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [currentOrgContext, setCurrentOrgContext] = useState<{
+    organizationId: string;
+    organizationName: string;
+    isSwitched: boolean;
+  } | null>(null);
   
   // Separate loading states to fix race conditions
   const [authLoading, setAuthLoading] = useState(true); // Initial auth check
@@ -94,6 +98,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('Profile fetched successfully:', data);
       setUserProfile(data as UserProfile);
       setProfileError(null);
+      
+      // Initialize context state for super users
+      if (data.role === 'super_user') {
+        setCurrentOrgContext({
+          organizationId: data.organization_id,
+          organizationName: data.organizations?.name || 'Unknown Organization',
+          isSwitched: false,
+        });
+      }
+      
       return data;
     } catch (error: any) {
       console.error('Failed to fetch user profile:', error);
@@ -119,6 +133,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const switchOrganizationContext = async (targetOrgId: string, targetOrgName: string) => {
+    if (!userProfile || userProfile.role !== 'super_user') {
+      throw new Error('Only super users can switch organization context');
+    }
+
+    try {
+      // Call the backend function to switch context
+      const { error } = await supabase.rpc('switch_organization_context', {
+        target_org_id: targetOrgId
+      });
+
+      if (error) throw error;
+
+      // Update frontend context state
+      setCurrentOrgContext({
+        organizationId: targetOrgId,
+        organizationName: targetOrgName,
+        isSwitched: targetOrgId !== userProfile.organization_id,
+      });
+
+      console.log('Organization context switched to:', targetOrgName);
+    } catch (error: any) {
+      console.error('Failed to switch organization context:', error);
+      throw error;
+    }
+  };
+
+  const resetOrganizationContext = async () => {
+    if (!userProfile || userProfile.role !== 'super_user') {
+      throw new Error('Only super users can reset organization context');
+    }
+
+    try {
+      // Call the backend function to reset context
+      const { error } = await supabase.rpc('reset_organization_context');
+
+      if (error) throw error;
+
+      // Reset frontend context state to home organization
+      setCurrentOrgContext({
+        organizationId: userProfile.organization_id,
+        organizationName: userProfile.organizations?.name || 'Unknown Organization',
+        isSwitched: false,
+      });
+
+      console.log('Organization context reset to home organization');
+    } catch (error: any) {
+      console.error('Failed to reset organization context:', error);
+      throw error;
+    }
+  };
+
+  const getCurrentOrganizationId = () => {
+    if (userProfile?.role === 'super_user' && currentOrgContext) {
+      return currentOrgContext.organizationId;
+    }
+    return userProfile?.organization_id || null;
+  };
+
   const emergencyLogout = async () => {
     try {
       console.log('Emergency logout triggered');
@@ -126,6 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setSession(null);
       setUserProfile(null);
+      setCurrentOrgContext(null);
       setProfileError(null);
       setError(null);
       
@@ -177,6 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         } else {
           setUserProfile(null);
+          setCurrentOrgContext(null);
           setProfileError(null);
         }
         
@@ -362,6 +437,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setSession(null);
       setUserProfile(null);
+      setCurrentOrgContext(null);
       setError(null);
       setProfileError(null);
       
@@ -395,6 +471,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     refreshProfile,
     emergencyLogout, // New: emergency logout when stuck
+    organizationContext: {
+      homeOrgId: userProfile?.organization_id || '',
+      currentOrgId: getCurrentOrganizationId() || '',
+      isContextSwitched: currentOrgContext?.isSwitched || false,
+      switchToOrganization: switchOrganizationContext,
+      resetToHomeOrganization: resetOrganizationContext,
+    },
   };
 
   return (

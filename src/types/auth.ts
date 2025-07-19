@@ -37,7 +37,7 @@ export interface OrganizationContext {
   homeOrgId: string;
   currentOrgId: string;
   isContextSwitched: boolean;
-  switchToOrganization: (orgId: string) => Promise<void>;
+  switchToOrganization: (orgId: string, orgName: string) => Promise<void>;
   resetToHomeOrganization: () => Promise<void>;
 }
 

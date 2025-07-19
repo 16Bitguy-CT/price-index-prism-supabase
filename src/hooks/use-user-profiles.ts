@@ -6,10 +6,11 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useUserProfiles() {
-  const { userProfile } = useAuth();
+  const { userProfile, organizationContext } = useAuth();
+  const currentOrgId = organizationContext?.currentOrgId || userProfile?.organization_id;
   
   return useQuery({
-    queryKey: ['user-profiles', userProfile?.role, userProfile?.organization_id],
+    queryKey: ['user-profiles', userProfile?.role, currentOrgId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_profiles')
