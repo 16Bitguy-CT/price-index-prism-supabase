@@ -49,7 +49,11 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, isLoading }: Cr
   });
 
   const handleSubmit = (data: CreateUserData) => {
-    onSubmit(data);
+    const processedData = {
+      ...data,
+      market_id: data.market_id === 'none' ? '' : data.market_id
+    };
+    onSubmit(processedData);
     form.reset();
   };
 
@@ -167,7 +171,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, isLoading }: Cr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No specific market</SelectItem>
+                      <SelectItem value="none">No specific market</SelectItem>
                       {markets.map((market) => (
                         <SelectItem key={market.id} value={market.id}>
                           {market.name} ({market.country})

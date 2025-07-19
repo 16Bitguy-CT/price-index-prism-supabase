@@ -111,7 +111,7 @@ export default function EmergencySetup() {
       if (data && data.length === 1) {
         setSelectedMarketId(data[0].id);
       } else {
-        setSelectedMarketId('');
+        setSelectedMarketId('none');
       }
     } catch (error: any) {
       console.error('Error fetching markets:', error);
@@ -150,7 +150,7 @@ export default function EmergencySetup() {
         last_name: data.last_name,
         role: data.role,
         organization_id: selectedOrgId,
-        market_id: selectedMarketId || null,
+        market_id: selectedMarketId === 'none' ? null : selectedMarketId || null,
         is_active: true,
       };
 
@@ -335,7 +335,7 @@ export default function EmergencySetup() {
                     <SelectValue placeholder="Select market" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific market</SelectItem>
+                    <SelectItem value="none">No specific market</SelectItem>
                     {markets.map((market) => (
                       <SelectItem key={market.id} value={market.id}>
                         {market.name} ({market.country})

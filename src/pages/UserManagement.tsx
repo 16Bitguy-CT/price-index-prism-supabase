@@ -82,7 +82,11 @@ function UserProfileForm({
     if (!userProfile) return;
     
     try {
-      await updateMutation.mutateAsync({ id: userProfile.id, data });
+      const processedData = {
+        ...data,
+        market_id: data.market_id === 'none' ? undefined : data.market_id
+      };
+      await updateMutation.mutateAsync({ id: userProfile.id, data: processedData });
       onSuccess();
     } catch (error) {
       // Error handling is done in the mutation
@@ -199,7 +203,7 @@ function UserProfileForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">No specific market</SelectItem>
+                  <SelectItem value="none">No specific market</SelectItem>
                   {markets.map((market) => (
                     <SelectItem key={market.id} value={market.id}>
                       {market.name} ({market.country})
