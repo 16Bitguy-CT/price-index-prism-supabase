@@ -31,9 +31,18 @@ export function useCreateMarket() {
 
   return useMutation({
     mutationFn: async (data: MarketFormData) => {
+      // Ensure all required fields are present
+      const insertData = {
+        name: data.name,
+        country: data.country,
+        currency: data.currency,
+        organization_id: data.organization_id,
+        is_active: data.is_active ?? true,
+      };
+
       const { data: result, error } = await supabase
         .from('markets')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 

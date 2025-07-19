@@ -21,7 +21,7 @@ export const profileUpdateSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
 });
 
-// Organization schemas
+// Organization schemas - make required fields non-optional
 export const organizationSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
   slug: z.string().min(1, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
@@ -34,7 +34,7 @@ export const organizationSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-// Market schemas
+// Market schemas - ensure all required fields are marked as required
 export const marketSchema = z.object({
   name: z.string().min(1, 'Market name is required'),
   country: z.string().min(1, 'Country is required'),
@@ -43,7 +43,7 @@ export const marketSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-// Channel segment schemas
+// Channel segment schemas - ensure all required fields are marked as required
 export const channelSegmentSchema = z.object({
   segment_type: z.string().min(1, 'Segment type is required'),
   market_id: z.string().uuid('Invalid market ID'),
@@ -51,7 +51,7 @@ export const channelSegmentSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-// Channel schemas
+// Channel schemas - ensure all required fields are marked as required
 export const channelSchema = z.object({
   channel_type: z.string().min(1, 'Channel type is required'),
   description: z.string().optional(),

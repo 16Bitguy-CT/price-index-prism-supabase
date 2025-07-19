@@ -39,9 +39,21 @@ export function useCreateOutlet() {
 
   return useMutation({
     mutationFn: async (data: OutletFormData) => {
+      // Ensure all required fields are present
+      const insertData = {
+        outlet_name: data.outlet_name,
+        contact_person: data.contact_person || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        address: data.address || null,
+        channel_id: data.channel_id,
+        organization_id: data.organization_id,
+        is_active: data.is_active ?? true,
+      };
+
       const { data: result, error } = await supabase
         .from('outlets')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 

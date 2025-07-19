@@ -24,9 +24,22 @@ export function useCreateOrganization() {
 
   return useMutation({
     mutationFn: async (data: OrganizationFormData) => {
+      // Ensure all required fields are present
+      const insertData = {
+        name: data.name,
+        slug: data.slug,
+        brand_name: data.brand_name || null,
+        primary_color: data.primary_color || null,
+        secondary_color: data.secondary_color || null,
+        logo_url: data.logo_url || null,
+        primary_domain: data.primary_domain || null,
+        third_party_domain: data.third_party_domain || null,
+        is_active: data.is_active ?? true,
+      };
+
       const { data: result, error } = await supabase
         .from('organizations')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 

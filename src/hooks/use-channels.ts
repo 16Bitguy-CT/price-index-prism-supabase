@@ -39,9 +39,20 @@ export function useCreateChannel() {
 
   return useMutation({
     mutationFn: async (data: ChannelFormData) => {
+      // Ensure all required fields are present
+      const insertData = {
+        channel_type: data.channel_type,
+        description: data.description || null,
+        segment_id: data.segment_id,
+        market_id: data.market_id,
+        organization_id: data.organization_id,
+        price_index_multiplier: data.price_index_multiplier || null,
+        is_active: data.is_active ?? true,
+      };
+
       const { data: result, error } = await supabase
         .from('channels')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 

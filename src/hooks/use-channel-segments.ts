@@ -35,9 +35,17 @@ export function useCreateChannelSegment() {
 
   return useMutation({
     mutationFn: async (data: ChannelSegmentFormData) => {
+      // Ensure all required fields are present
+      const insertData = {
+        segment_type: data.segment_type,
+        market_id: data.market_id,
+        organization_id: data.organization_id,
+        is_active: data.is_active ?? true,
+      };
+
       const { data: result, error } = await supabase
         .from('channel_segments')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 
